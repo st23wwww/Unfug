@@ -1,2 +1,5 @@
 unfug-artifact-v1.html
 backup/
+linux/pkg/
+linux/src/
+linux/*.pkg.tar.*

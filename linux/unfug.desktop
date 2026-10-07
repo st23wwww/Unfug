@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Unfug
+GenericName=Zeichenprogramm
+Comment=Unendliche Leinwand zum Zeichnen
+Exec=unfug %F
+Icon=unfug
+Terminal=false
+Categories=Graphics;2DGraphics;VectorGraphics;
+MimeType=application/x-unfug;
+Keywords=zeichnen;malen;skizze;manga;draw;paint;
+StartupWMClass=Unfug

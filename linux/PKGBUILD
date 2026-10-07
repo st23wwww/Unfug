@@ -1,0 +1,21 @@
+# Lokales Paket für Unfug. Bauen + installieren:  cd ~/Documents/Unfug/linux && makepkg -si
+pkgname=unfug
+pkgver=4.0.0
+pkgrel=1
+pkgdesc="Unfug – unendliche Leinwand zum Zeichnen (Mischief-artig)"
+arch=('any')
+license=('MIT')
+depends=('electron43')
+source=()
+
+package() {
+  local src="$startdir/.."
+  install -d "$pkgdir/usr/lib/unfug/web"
+  install -m644 "$startdir"/{main.js,preload.js,package.json} "$pkgdir/usr/lib/unfug/"
+  install -m644 "$src"/index.html "$src"/manifest.webmanifest "$src"/icon-*.png "$pkgdir/usr/lib/unfug/web/"
+  install -Dm755 "$startdir/unfug.sh" "$pkgdir/usr/bin/unfug"
+  install -Dm644 "$startdir/unfug.desktop" "$pkgdir/usr/share/applications/unfug.desktop"
+  install -Dm644 "$startdir/unfug-mime.xml" "$pkgdir/usr/share/mime/packages/unfug.xml"
+  install -Dm644 "$src/icon-512.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/unfug.png"
+  install -Dm644 "$src/icon-192.png" "$pkgdir/usr/share/icons/hicolor/192x192/apps/unfug.png"
+}

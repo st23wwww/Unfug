@@ -1231,6 +1231,8 @@ if(window.visualViewport)visualViewport.addEventListener('resize',resize);
   }else demo();
   ready=true;updateButtons();updateViewUI();renderLayersUI();schedule(true);
   if(!hintSeen)showHint();
+  // Desktop-App (Linux): .unfug-Dateien per Doppelklick öffnen
+  if(window.unfugNative)window.unfugNative.onOpenFile(f=>openProjectFile(new File([f.data],f.name)));
 })();
 })();
 </script>
