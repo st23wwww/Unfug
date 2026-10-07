@@ -1,6 +1,6 @@
 # Lokales Paket für Unfug. Bauen + installieren:  cd ~/Documents/Unfug/linux && makepkg -si
 pkgname=unfug
-pkgver=4.2.0
+pkgver=4.3.0
 pkgrel=1
 pkgdesc="Unfug – unendliche Leinwand zum Zeichnen (Mischief-artig)"
 arch=('any')
