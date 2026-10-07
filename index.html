@@ -103,7 +103,26 @@ button,select,input{font-family:inherit;font-size:inherit;touch-action:manipulat
 .pop{position:fixed;z-index:20;background:var(--chrome-solid);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:12px;color:var(--ink);max-width:calc(100vw - 32px);max-height:calc(100% - 24px);overflow-y:auto;overscroll-behavior:contain}
 .pop h3{margin:0;font-size:11px;font-weight:600;color:var(--ink-2);letter-spacing:.07em;text-transform:uppercase}
 .pop.tr{right:calc(12px + env(safe-area-inset-right,0px));top:calc(70px + env(safe-area-inset-top,0px));max-height:calc(100% - 90px - env(safe-area-inset-top,0px))}
-#popColor{width:256px;display:grid;gap:12px}
+#popColor{width:300px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px;overflow-x:hidden}
+#popColor h3{margin-top:4px}
+.cmp{display:grid;grid-template-columns:1fr 1fr;height:64px;border-radius:12px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--line),0 0 0 4px var(--paper)}
+.cmp>*{border:0;padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;text-align:left;color:var(--tc,#000);background:var(--c,#000);font-size:11px}
+#cOld{cursor:pointer}
+.ct{font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:10.5px;opacity:.85}
+.cl{font-variant-numeric:tabular-nums;font-size:12px;font-weight:600}
+.sv{position:relative;height:172px;border-radius:12px;touch-action:none;cursor:crosshair}
+.sv canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
+.svk{position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.35);background:var(--c);pointer-events:none}
+.hue{position:relative;height:26px;border-radius:13px;touch-action:none;cursor:ew-resize;background:linear-gradient(to right,#f00,#ff0 16.7%,#0f0 33.3%,#0ff 50%,#00f 66.7%,#f0f 83.3%,#f00);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.huek{position:absolute;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.3);background:var(--c);pointer-events:none}
+.crow{display:flex;align-items:center;gap:8px}
+.hexl{display:flex;align-items:center;gap:2px;flex:1;min-height:38px;padding:0 10px;border-radius:11px;background:var(--hover);color:var(--ink-2);font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+.hexl input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit;text-transform:lowercase;-webkit-user-select:text;user-select:text;outline:none}
+.hsb{margin:-2px 2px 0;font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.vlbl{font-size:9.5px;line-height:1;color:var(--ink-2);text-align:center;padding:0 0 6px;white-space:nowrap}
+#vsStab .vs-track{width:10px;border-radius:5px;background:var(--line)}
+#vsStab .vs-fill{position:absolute;left:0;right:0;bottom:0;height:calc(var(--v) * 100%);background:var(--accent);opacity:.75}
+@media (max-height:800px) and (min-height:601px){.vs{height:96px}}
 .swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .sw{aspect-ratio:1;width:100%;border-radius:50%;border:0;background:var(--c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.16);cursor:pointer;padding:0}
 .sw[aria-pressed="true"]{box-shadow:inset 0 0 0 1px rgba(0,0,0,.16),0 0 0 2px var(--chrome-solid),0 0 0 4px var(--accent)}
@@ -205,7 +224,11 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
   <button class="tb" id="colorBtn" aria-label="Farbe wählen" title="Farbe"><span id="colorDot"></span></button>
   <div class="sep"></div>
   <div class="vs" id="vsSize" role="slider" tabindex="0" aria-label="Pinselgröße" aria-valuemin="0" aria-valuemax="100"><div class="vs-track"><div class="vs-fill"></div></div><div class="vs-knob"></div></div>
+  <div class="vlbl">Größe</div>
   <div class="vs" id="vsAlpha" role="slider" tabindex="0" aria-label="Deckkraft" aria-valuemin="0" aria-valuemax="100"><div class="vs-track"><div class="vs-fill"></div></div><div class="vs-knob"></div></div>
+  <div class="vlbl">Deckkraft</div>
+  <div class="vs" id="vsStab" role="slider" tabindex="0" aria-label="Glättung" aria-valuemin="0" aria-valuemax="100"><div class="vs-track"><div class="vs-fill"></div></div><div class="vs-knob"></div></div>
+  <div class="vlbl">Glättung</div>
 </nav>
 
 <div class="bar top" id="top">
@@ -238,9 +261,21 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
 </div>
 
 <div class="pop" id="popColor" hidden>
-  <h3>Farbe</h3>
+  <div class="cmp">
+    <button id="cOld" title="Zurück zur vorherigen Farbe"><span class="ct">Vorher</span><span class="cl" id="cOldL"></span></button>
+    <div id="cNew"><span class="ct">Neu</span><span class="cl" id="cNewL"></span></div>
+  </div>
+  <div class="sv" id="sv" role="slider" tabindex="0" aria-label="Sättigung und Helligkeit"><canvas id="svC"></canvas><div class="svk" id="svK"></div></div>
+  <div class="hue" id="hue" role="slider" tabindex="0" aria-label="Farbton"><div class="huek" id="hueK"></div></div>
+  <div class="crow">
+    <button class="mini" id="pipBtn" title="Farbe von der Leinwand aufnehmen (I)"><svg viewBox="0 0 24 24"><path d="M14.5 4.5l5 5"/><path d="M17 3.5a2.1 2.1 0 013 3l-2 2-3-3z"/><path d="M15 7l-9.5 9.5L4 20l3.5-1.5L17 9"/></svg>Pipette</button>
+    <label class="hexl" for="hexIn">#<input id="hexIn" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex-Farbcode"></label>
+  </div>
+  <p class="hsb" id="hsbTxt"></p>
+  <h3>Hauttöne</h3>
+  <div class="swatches" id="skin"></div>
+  <h3>Palette</h3>
   <div class="swatches" id="swatches"></div>
-  <label class="custom"><input type="color" id="colorIn" value="#16151a"> Eigene Farbe mischen</label>
   <h3>Zuletzt benutzt</h3>
   <div class="swatches" id="recent"></div>
 </div>
@@ -304,7 +339,7 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
     <li><b>Pinsel nochmal antippen</b> → alle Pinsel: Tusche, Manga, Bleistift, Kohle, Öl, Aquarell …, dazu <b>Glättung</b> für ruhige Linien</li>
     <li><b>Ebenen</b> oben rechts, mit Deckkraft und Mischmodus</li>
     <li>⋯ → <b>Bild exportieren</b> als PNG, <b>Projekt sichern</b> zum späteren Weitermalen</li>
-    <li>Tastatur: <kbd>B</kbd> Pinsel, <kbd>E</kbd> Radierer, <kbd>[</kbd> <kbd>]</kbd> Größe, <kbd>R</kbd> Drehung weg, <kbd>Q</kbd>/<kbd>W</kbd> drehen, Leertaste + Ziehen verschiebt</li>
+    <li>Tastatur: <kbd>B</kbd> Pinsel, <kbd>E</kbd> Radierer, <kbd>[</kbd> <kbd>]</kbd> Größe, <kbd>I</kbd> Pipette, <kbd>R</kbd> Drehung weg, <kbd>Q</kbd>/<kbd>W</kbd> drehen, Leertaste + Ziehen verschiebt</li>
   </ul>
   <p class="egg">Die Spirale ist ein Beispiel. Zoom mal ganz tief in ihr Zentrum. Entfernen kannst du sie über ⋯ → Alle Ebenen leeren.</p>
   <div class="btnrow"><button class="btn" id="hintOk">Los geht’s</button></div>
@@ -783,6 +818,7 @@ cv.addEventListener('pointerdown',e=>{
   e.preventDefault();closePops();
   try{cv.setPointerCapture(e.pointerId)}catch(_){}
   const x=e.clientX-rect.left,y=e.clientY-rect.top;
+  if(picking||(e.altKey&&e.pointerType==='mouse')){if(!cur)pickAt(x,y);return}
   if(e.pointerType==='touch'){
     if(cur&&cur.pt!=='touch')return;
     touches.set(e.pointerId,{x,y,x0:x,y0:y});
@@ -852,6 +888,7 @@ addEventListener('keydown',e=>{
   if(k==='b'){setTool('brush');return}
   if(k==='e'){setTool('eraser');return}
   if(k==='l'){togglePop('#popLayers');return}
+  if(k==='i'){startPipette();return}
   if(k==='['||k===']'){const t=P();t.size=clamp(t.size*(k===']'?1.2:1/1.2),1,300);syncSliders();savePrefs();return}
   if(k==='q')rotateTo(view.r-Math.PI/12);
   if(k==='w')rotateTo(view.r+Math.PI/12);
@@ -921,8 +958,8 @@ function syncStab(){
   $('#stabR').value=b;$('#stabV').textContent=b+' %'+stabHint(b);
   $('#eStabR').value=e;$('#eStabV').textContent=e+' %'+stabHint(e);
 }
-$('#stabR').addEventListener('input',e=>{BR[brushId].smooth=e.target.value/100;syncStab();savePrefs()});
-$('#eStabR').addEventListener('input',e=>{ERASER.smooth=e.target.value/100;syncStab();savePrefs()});
+$('#stabR').addEventListener('input',e=>{BR[brushId].smooth=e.target.value/100;syncStab();syncSliders();savePrefs()});
+$('#eStabR').addEventListener('input',e=>{ERASER.smooth=e.target.value/100;syncStab();syncSliders();savePrefs()});
 $('#softR').addEventListener('input',e=>{BR[brushId].soft=e.target.value/100;$('#softV').textContent=e.target.value+' %';savePrefs()});
 $('#softR').addEventListener('change',drawBrushPreviews);
 $('#presR').addEventListener('change',e=>{BR[brushId].pres=e.target.checked;savePrefs();drawBrushPreviews()});
@@ -946,27 +983,99 @@ function vslider(el,get,set,show){
 const LOGMAX=Math.log(300);
 vslider($('#vsSize'),()=>Math.log(P().size)/LOGMAX,v=>P().size=Math.max(1,Math.exp(v*LOGMAX)),el=>showPreview(el,'size'));
 vslider($('#vsAlpha'),()=>(P().alpha-.02)/.98,v=>P().alpha=.02+v*.98,el=>showPreview(el,'alpha'));
+vslider($('#vsStab'),()=>P().smooth,v=>{P().smooth=v;syncStab()},el=>showPreview(el,'stab'));
 function syncSliders(){sliders.forEach(f=>f())}
 function showPreview(el,kind){
   const t=P(),pv=$('#preview'),dot=$('#pvDot'),d=Math.min(t.size,80);
+  $('#pvBox').hidden=kind==='stab';
   dot.style.width=dot.style.height=Math.max(d,1)+'px';
   dot.style.background=tool==='eraser'?'var(--ink-2)':color;dot.style.opacity=t.alpha;
   dot.style.filter=t.soft>.02?`blur(${(d*t.soft*.28).toFixed(1)}px)`:'none';
-  $('#pvVal').textContent=kind==='size'?(t.size<10?t.size.toFixed(1).replace('.',','):Math.round(t.size))+' px':Math.round(t.alpha*100)+' %';
-  $('#pvLbl').textContent=(kind==='size'?'Größe':'Deckkraft')+' · '+t.name;
+  const sv=Math.round(t.smooth*100);
+  $('#pvVal').textContent=kind==='size'?(t.size<10?t.size.toFixed(1).replace('.',','):Math.round(t.size))+' px':kind==='alpha'?Math.round(t.alpha*100)+' %':sv+' %';
+  $('#pvLbl').textContent=(kind==='size'?'Größe':kind==='alpha'?'Deckkraft':'Glättung'+(sv>45?' · Schnur '+Math.round(lazyLen(t.smooth))+' px':''))+' · '+t.name;
   pv.hidden=false;
   const sb=side.getBoundingClientRect(),er=el.getBoundingClientRect();
   pv.style.left=(sb.right+10)+'px';pv.style.top=clamp(er.top+er.height/2-pv.offsetHeight/2,8,innerHeight-pv.offsetHeight-8)+'px';
 }
 
-function setColor(c){
-  color=c.toLowerCase();$('#colorDot').style.setProperty('--c',color);side.style.setProperty('--c',color);
-  $('#colorIn').value=color;
-  $$('#swatches .sw,#recent .sw').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===color)));
+/* ---- colour picker: HSB field + hue strip, before/after comparison, skin tones, eyedropper ---- */
+const SKIN=['#fde3d2','#f8d0b8','#f1c09f','#e8ad89','#d99a73','#c68660','#ad6f4c','#8f573a','#71422c','#56311f','#e89a8f','#b8786a'];
+let hsv={h:0,s:0,v:.1},oldColor='#16151a',svHue=-1,picking=false;
+function rgb2hex(r,g,b){return '#'+[r,g,b].map(v=>clamp(Math.round(v),0,255).toString(16).padStart(2,'0')).join('')}
+function hsv2hex(h,s,v){
+  const f=n=>{const k=(n+h/60)%6;return v-v*s*Math.max(0,Math.min(k,4-k,1))};
+  return rgb2hex(f(5)*255,f(3)*255,f(1)*255);
 }
-function pickColor(c){setColor(c);if(tool==='eraser')setTool('brush');savePrefs()}
+function hex2hsv(hex,keepH){
+  const [r,g,b]=hex2rgb(hex).map(x=>x/255),mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;
+  let h=keepH;
+  if(d>0){h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h=(h*60+360)%360}
+  return {h,s:mx?d/mx:0,v:mx};
+}
+// Perceived lightness L* (0 = black, 100 = white) – the value painters compare skin tones by
+function lstar(hex){
+  const lin=c=>{c/=255;return c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4)};
+  const [r,g,b]=hex2rgb(hex),Y=.2126*lin(r)+.7152*lin(g)+.0722*lin(b);
+  return Y>.008856?116*Math.cbrt(Y)-16:903.3*Y;
+}
+function setColor(c,fromPicker){
+  color=c.toLowerCase();$('#colorDot').style.setProperty('--c',color);side.style.setProperty('--c',color);
+  if(!fromPicker)hsv=hex2hsv(color,hsv.h);
+  $$('#swatches .sw,#recent .sw,#skin .sw').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===color)));
+  updatePicker();
+}
+function pickColor(c,fromPicker){setColor(c,fromPicker);if(tool==='eraser')setTool('brush');savePrefs()}
+function paintCmp(el,c,lbl){const L=lstar(c);el.style.setProperty('--c',c);el.style.setProperty('--tc',L>58?'#16151a':'#ffffff');lbl.textContent='Helligkeit '+Math.round(L)}
+function drawSV(){
+  const c=$('#svC'),pd=Math.min(window.devicePixelRatio||1,2),w=c.clientWidth||276,h=c.clientHeight||172;
+  if(c.width!==Math.round(w*pd)){c.width=Math.round(w*pd);c.height=Math.round(h*pd)}
+  const x=c.getContext('2d'),W2=c.width,H2=c.height;
+  x.fillStyle=hsv2hex(hsv.h,1,1);x.fillRect(0,0,W2,H2);
+  let g=x.createLinearGradient(0,0,W2,0);g.addColorStop(0,'#fff');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,W2,H2);
+  g=x.createLinearGradient(0,0,0,H2);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'#000');x.fillStyle=g;x.fillRect(0,0,W2,H2);
+  svHue=hsv.h;
+}
+function updatePicker(){
+  if($('#popColor').hidden)return;
+  if(svHue!==hsv.h)drawSV();
+  const k=$('#svK');k.style.left=(hsv.s*100)+'%';k.style.top=((1-hsv.v)*100)+'%';k.style.setProperty('--c',color);
+  const hk=$('#hueK');hk.style.left=(hsv.h/360*100)+'%';hk.style.setProperty('--c',hsv2hex(hsv.h,1,1));
+  paintCmp($('#cOld'),oldColor,$('#cOldL'));paintCmp($('#cNew'),color,$('#cNewL'));
+  if(document.activeElement!==$('#hexIn'))$('#hexIn').value=color.slice(1);
+  $('#hsbTxt').textContent=`Farbton ${Math.round(hsv.h)}° · Sättigung ${Math.round(hsv.s*100)} % · Helligkeit ${Math.round(hsv.v*100)} %`;
+}
+function dragArea(el,onPos,onKey){
+  const from=e=>{const r=el.getBoundingClientRect();onPos(clamp((e.clientX-r.left)/r.width,0,1),clamp((e.clientY-r.top)/r.height,0,1))};
+  el.addEventListener('pointerdown',e=>{e.preventDefault();try{el.setPointerCapture(e.pointerId)}catch(_){}el.dataset.drag='1';from(e)});
+  el.addEventListener('pointermove',e=>{if(el.dataset.drag)from(e)});
+  const end=()=>{if(el.dataset.drag){delete el.dataset.drag;savePrefs()}};
+  el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+  el.addEventListener('keydown',e=>{const m={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(m){e.preventDefault();onKey(m[0]*.02,m[1]*.02)}});
+}
+dragArea($('#sv'),(x,y)=>{hsv.s=x;hsv.v=1-y;pickColor(hsv2hex(hsv.h,hsv.s,hsv.v),true)},
+  (dx,dy)=>{hsv.s=clamp(hsv.s+dx,0,1);hsv.v=clamp(hsv.v-dy,0,1);pickColor(hsv2hex(hsv.h,hsv.s,hsv.v),true)});
+dragArea($('#hue'),x=>{hsv.h=x*359.9;pickColor(hsv2hex(hsv.h,hsv.s,hsv.v),true)},
+  dx=>{hsv.h=clamp(hsv.h+dx*180,0,359.9);pickColor(hsv2hex(hsv.h,hsv.s,hsv.v),true)});
+$('#cOld').addEventListener('click',()=>pickColor(oldColor));
+$('#hexIn').addEventListener('keydown',e=>{if(e.key==='Enter')e.target.blur()});
+$('#hexIn').addEventListener('change',e=>{
+  let v=e.target.value.trim().replace(/^#/,'').toLowerCase();
+  if(/^[0-9a-f]{3}$/.test(v))v=v.split('').map(c=>c+c).join('');
+  if(/^[0-9a-f]{6}$/.test(v))pickColor('#'+v);else{toast('Hex-Code: 6 Zeichen, z. B. e8ad89');e.target.value=color.slice(1)}
+});
+function startPipette(){picking=true;closePops();cv.style.cursor='crosshair';cursorEl.hidden=true;toast('Pipette: tippe auf eine Farbe in der Zeichnung')}
+function pickAt(x,y){
+  picking=false;cv.style.cursor='';
+  if(gView||!cachesOK||dirtyFull){gView=null;dirtyFull=false;renderFull()}
+  const px=ctx.getImageData(clamp(Math.round(x*dpr),0,cv.width-1),clamp(Math.round(y*dpr),0,cv.height-1),1,1).data,a=px[3]/255,b=hex2rgb(bg);
+  const c=rgb2hex(px[0]*a+b[0]*(1-a),px[1]*a+b[1]*(1-a),px[2]*a+b[2]*(1-a));
+  pickColor(c);toast('Farbe aufgenommen: '+c);
+}
+$('#pipBtn').addEventListener('click',startPipette);
 function swatchBtn(c){const b=document.createElement('button');b.className='sw';b.style.setProperty('--c',c);b.dataset.c=c;b.setAttribute('aria-label','Farbe '+c);b.setAttribute('aria-pressed',String(c===color));return b}
 SWATCHES.forEach(c=>$('#swatches').append(swatchBtn(c)));
+SKIN.forEach(c=>$('#skin').append(swatchBtn(c)));
 function renderRecent(){
   const box=$('#recent');box.textContent='';
   if(!recent.length){const s=document.createElement('span');s.className='empty';s.textContent='Noch keine – erscheint nach dem ersten Strich.';s.style.gridColumn='1/-1';box.append(s);return}
@@ -974,7 +1083,6 @@ function renderRecent(){
 }
 function addRecent(c){if(recent[0]===c)return;recent=[c,...recent.filter(x=>x!==c)].slice(0,6);renderRecent();savePrefs()}
 $('#popColor').addEventListener('click',e=>{const b=e.target.closest('.sw');if(b)pickColor(b.dataset.c)});
-$('#colorIn').addEventListener('input',e=>pickColor(e.target.value));
 $('#colorBtn').addEventListener('click',e=>togglePop('#popColor',e.currentTarget));
 
 /* ================= popovers & menu ================= */
@@ -983,6 +1091,7 @@ function togglePop(id,anchor){
   const p=$(id),open=p.hidden;closePops(id);p.hidden=!open;if(!open)return;
   if(id==='#popBrush')drawBrushPreviews();
   if(id==='#popLayers')renderLayersUI();
+  if(id==='#popColor'){oldColor=color;svHue=-1;requestAnimationFrame(updatePicker);updatePicker()}
   if(p.classList.contains('tr')||!anchor)return;
   const sb=side.getBoundingClientRect(),ar=anchor.getBoundingClientRect(),h=p.offsetHeight;
   p.style.left=(sb.right+10)+'px';p.style.top=clamp(ar.top+ar.height/2-h/2,10,innerHeight-h-10)+'px';
