@@ -181,10 +181,14 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
 
 #modal{position:fixed;inset:0;z-index:40;background:var(--scrim);display:grid;place-items:center;padding:16px}
 .sheet{background:var(--chrome-solid);border-radius:18px;padding:14px;width:min(900px,100%);max-height:100%;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
-#expImg{display:block;max-width:100%;max-height:calc(100vh - 190px);margin:0 auto;object-fit:contain;border-radius:8px;box-shadow:0 0 0 1px var(--line);-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto}
-.sheet .row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.sheet p{margin:0;color:var(--ink-2);max-width:60ch}
+.sheet h2{margin:2px 4px 0;font-size:18px;letter-spacing:-.01em}
+#expImg{display:block;max-width:100%;max-height:calc(100vh - 290px);margin:0 auto;object-fit:contain;border-radius:8px;box-shadow:0 0 0 1px var(--line);-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto;background:conic-gradient(#e4e2e8 25%,#fff 0 50%,#e4e2e8 0 75%,#fff 0) 0 0/16px 16px}
+.sheet p{margin:0 4px;color:var(--ink-2);max-width:65ch}
 .sheet p b{color:var(--ink)}
+.sheet .tog{padding:0 4px}
+.fname{font:12.5px ui-monospace,SFMono-Regular,Menlo,monospace}
+.btnrow.wrap{flex-wrap:wrap}
+.btn:disabled{opacity:.45;cursor:default}
 
 #toast{position:fixed;z-index:35;left:50%;top:calc(16px + env(safe-area-inset-top,0px));transform:translateX(-50%);background:var(--ink);color:var(--chrome-solid);padding:8px 14px;border-radius:999px;font-weight:600;font-size:13px;pointer-events:none;white-space:nowrap}
 </style>
@@ -276,9 +280,12 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
   <div class="bgs" id="bgs"></div>
   <label class="tog"><input type="checkbox" id="fingerTog"> Mit dem Finger zeichnen</label>
   <label class="tog"><input type="checkbox" id="rotTog"> Mit zwei Fingern drehen</label>
-  <div class="grp">Als Bild sichern</div>
+  <div class="grp">Bild exportieren (PNG)</div>
   <button class="mi" data-act="expView">Aktuelle Ansicht</button>
   <button class="mi" data-act="expAll">Ganze Zeichnung</button>
+  <div class="grp">Projekt zum Weitermalen</div>
+  <button class="mi" data-act="saveProj">Projekt sichern <kbd>.unfug</kbd></button>
+  <button class="mi" data-act="openProj">Projekt öffnen …</button>
   <div class="hr"></div>
   <button class="mi" data-act="help">Gesten &amp; Tastenkürzel</button>
   <button class="mi danger" data-act="clear" id="clearBtn">Alle Ebenen leeren</button>
@@ -294,6 +301,7 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
     <li><b>2-Finger-Tipp</b> = rückgängig, <b>3-Finger-Tipp</b> = wiederholen</li>
     <li><b>Pinsel nochmal antippen</b> → alle Pinsel: Tusche, Manga, Bleistift, Kohle, Öl, Aquarell …</li>
     <li><b>Ebenen</b> oben rechts, mit Deckkraft und Mischmodus</li>
+    <li>⋯ → <b>Bild exportieren</b> als PNG, <b>Projekt sichern</b> zum späteren Weitermalen</li>
     <li>Tastatur: <kbd>B</kbd> Pinsel, <kbd>E</kbd> Radierer, <kbd>[</kbd> <kbd>]</kbd> Größe, <kbd>R</kbd> Drehung weg, <kbd>Q</kbd>/<kbd>W</kbd> drehen, Leertaste + Ziehen verschiebt</li>
   </ul>
   <p class="egg">Die Spirale ist ein Beispiel. Zoom mal ganz tief in ihr Zentrum. Entfernen kannst du sie über ⋯ → Alle Ebenen leeren.</p>
@@ -302,13 +310,19 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
 
 <div id="modal" hidden>
   <div class="sheet">
+    <h2 id="mTitle">Bild exportieren</h2>
     <img id="expImg" alt="Deine Zeichnung als Bild">
-    <div class="row">
-      <p><b>Lange auf das Bild drücken</b> und „In Fotos sichern“ oder „Teilen“ wählen. Am Computer: Rechtsklick → Bild speichern.</p>
-      <div class="btnrow"><button class="btn ghost" id="shareBtn" hidden>Teilen …</button><button class="btn" id="closeModal">Fertig</button></div>
+    <label class="tog" id="transRow"><input type="checkbox" id="transTog"> Transparenter Hintergrund</label>
+    <p id="mText"></p>
+    <p class="fname" id="mFile"></p>
+    <div class="btnrow wrap">
+      <button class="btn ghost" id="dlBtn" disabled>Speichern</button>
+      <button class="btn ghost" id="shareBtn" hidden disabled>Teilen …</button>
+      <button class="btn" id="closeModal">Fertig</button>
     </div>
   </div>
 </div>
+<input type="file" id="fileIn" hidden>
 
 <div id="toast" hidden></div>
 
@@ -980,37 +994,133 @@ $('#popMenu').addEventListener('click',e=>{
   else if(a==='rot0')rotateTo(0);
   else if(a==='expView')exportImg(false);
   else if(a==='expAll')exportImg(true);
+  else if(a==='saveProj')saveProject();
+  else if(a==='openProj')$('#fileIn').click();
   else if(a==='help')showHint();
 });
 
 /* ================= export ================= */
-function renderAllTo(w,h,M){
+function renderAllTo(w,h,M,transparent){
   const out=document.createElement('canvas'),tmp=document.createElement('canvas');out.width=tmp.width=w;out.height=tmp.height=h;
   const ox=out.getContext('2d'),tx=tmp.getContext('2d');
   for(const L of layers){if(!L.vis||!L.strokes.length)continue;tx.clearRect(0,0,w,h);for(const s of L.strokes)drawStroke(tx,s,M);ox.globalAlpha=L.op;ox.globalCompositeOperation=L.bl;ox.drawImage(tmp,0,0)}
-  ox.globalAlpha=1;ox.globalCompositeOperation='destination-over';ox.fillStyle=bg;ox.fillRect(0,0,w,h);
+  ox.globalAlpha=1;
+  if(!transparent){ox.globalCompositeOperation='destination-over';ox.fillStyle=bg;ox.fillRect(0,0,w,h)}
   return out;
 }
-let lastBlob=null;
-function exportImg(all){
+const stamp=()=>{const d=new Date(),z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())} ${z(d.getHours())}-${z(d.getMinutes())}`};
+// pending = the file the export dialog offers: {blob,name,type,kind:'img'|'proj',all}
+let pending=null,blobURL=null;
+function setPendingBlob(blob){
+  pending.blob=blob;
+  $('#mFile').textContent=pending.name+(blob?'  ·  '+(blob.size>1048576?(blob.size/1048576).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(blob.size/1024))+' KB'):'');
+  $('#dlBtn').disabled=!blob;
+  let can=false;
+  try{can=!!(blob&&navigator.canShare&&navigator.canShare({files:[new File([blob],pending.name,{type:pending.type})]}))}catch(_){}
+  $('#shareBtn').hidden=!can;$('#shareBtn').disabled=!can;
+}
+function renderPendingImage(){
   let out;
-  if(!all){gView=null;out=renderAllTo(cv.width,cv.height,viewM())}
+  const trans=$('#transTog').checked;
+  if(!pending.all){gView=null;out=renderAllTo(cv.width,cv.height,viewM(),trans)}
   else{
-    const b=boundsAll();if(!b){toast('Noch nichts gezeichnet');return}
+    const b=boundsAll();
     const pad=32,max=3600,bw=b[2]-b[0],bh=b[3]-b[1];
     const s=Math.min((max-2*pad)/Math.max(bw,1e-12),(max-2*pad)/Math.max(bh,1e-12));
-    out=renderAllTo(Math.max(1,Math.ceil(bw*s+2*pad)),Math.max(1,Math.ceil(bh*s+2*pad)),{a:s,b:0,c:0,d:s,e:-b[0]*s+pad,f:-b[1]*s+pad,k:s});
+    out=renderAllTo(Math.max(1,Math.ceil(bw*s+2*pad)),Math.max(1,Math.ceil(bh*s+2*pad)),{a:s,b:0,c:0,d:s,e:-b[0]*s+pad,f:-b[1]*s+pad,k:s},trans);
   }
-  $('#expImg').src=out.toDataURL('image/png');$('#modal').hidden=false;
-  lastBlob=null;out.toBlob(b=>{lastBlob=b});
+  $('#expImg').src=out.toDataURL('image/png');
+  setPendingBlob(null);
+  out.toBlob(b=>{if(pending&&pending.kind==='img')setPendingBlob(b)},'image/png');
 }
-try{$('#shareBtn').hidden=!(navigator.canShare&&navigator.canShare({files:[new File([''],'t.png',{type:'image/png'})]}))}catch(_){}
+function exportImg(all){
+  if(all&&!boundsAll()){toast('Noch nichts gezeichnet');return}
+  pending={kind:'img',all,name:'Unfug '+stamp()+'.png',type:'image/png'};
+  $('#mTitle').textContent=all?'Ganze Zeichnung als PNG':'Aktuelle Ansicht als PNG';
+  $('#expImg').hidden=false;$('#transRow').hidden=false;
+  $('#mText').innerHTML='<b>Teilen</b> → „Bild sichern“ legt es in Fotos ab, „In Dateien sichern“ in die Dateien-App. <b>Speichern</b> lädt die PNG-Datei in Dateien → Downloads.';
+  $('#modal').hidden=false;
+  renderPendingImage();
+}
+$('#transTog').addEventListener('change',()=>{if(pending&&pending.kind==='img')renderPendingImage()});
+function download(){
+  if(!pending||!pending.blob)return;
+  if(blobURL)URL.revokeObjectURL(blobURL);
+  blobURL=URL.createObjectURL(pending.blob);
+  const a=document.createElement('a');a.href=blobURL;a.download=pending.name;document.body.append(a);a.click();a.remove();
+  toast('Gespeichert: '+pending.name);
+}
+$('#dlBtn').addEventListener('click',download);
 $('#shareBtn').addEventListener('click',()=>{
-  if(!lastBlob)return;
-  navigator.share({files:[new File([lastBlob],'unfug-'+new Date().toISOString().slice(0,10)+'.png',{type:'image/png'})]})
-    .catch(e=>{if(e&&e.name!=='AbortError')toast('Teilen geht hier nicht – lange aufs Bild drücken')});
+  if(!pending||!pending.blob)return;
+  navigator.share({files:[new File([pending.blob],pending.name,{type:pending.type})]})
+    .catch(e=>{if(e&&e.name!=='AbortError'){toast('Teilen ging nicht – nimm „Speichern“');}});
 });
-$('#closeModal').addEventListener('click',()=>{$('#modal').hidden=true;$('#expImg').removeAttribute('src')});
+$('#closeModal').addEventListener('click',()=>{$('#modal').hidden=true;$('#expImg').removeAttribute('src');pending=null});
+
+/* ================= project files (.unfug) ================= */
+function b64enc(f64){const u=new Uint8Array(f64.buffer,f64.byteOffset,f64.byteLength);let s='';for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
+function b64dec(str){const s=atob(str),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return new Float64Array(u.buffer,0,u.length>>3)}
+async function gz(text){
+  if(!('CompressionStream' in window))return new Blob([text]);
+  return new Response(new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'))).blob();
+}
+async function gunzipText(buf){
+  if(buf[0]===0x1f&&buf[1]===0x8b){
+    if(!('DecompressionStream' in window))throw new Error('Dieses Gerät kann die gepackte Datei nicht öffnen');
+    return new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  }
+  return new TextDecoder().decode(buf);
+}
+async function saveProject(){
+  const doc={app:'unfug',v:2,saved:new Date().toISOString(),bg,view:{x:view.x,y:view.y,z:view.z,r:view.r},active,
+    layers:layers.map(L=>({name:L.name,vis:L.vis,op:L.op,bl:L.bl,strokes:L.strokes.map(s=>({m:s.m,c:s.c,a:s.a,s:s.s,k:s.k,t:s.t,u:s.u,i:s.i,p:b64enc(s.p)}))}))};
+  pending={kind:'proj',name:'Unfug '+stamp()+'.unfug',type:'application/octet-stream'};
+  $('#mTitle').textContent='Projekt sichern';
+  $('#expImg').hidden=true;$('#transRow').hidden=true;
+  $('#mText').innerHTML='Die Datei enthält <b>alle Ebenen und Striche</b>, voll bearbeitbar. Am besten über <b>Teilen</b> → „In Dateien sichern“ (z. B. in iCloud Drive) ablegen. Später: ⋯ → <b>Projekt öffnen</b>.';
+  $('#modal').hidden=false;setPendingBlob(null);
+  const blob=await gz(JSON.stringify(doc));
+  if(!pending||pending.kind!=='proj')return;
+  setPendingBlob(blob);
+  if($('#shareBtn').hidden){ // some browsers refuse unknown types in the share sheet; retry as plain text
+    pending.type='text/plain';setPendingBlob(blob);
+  }
+}
+const isHex=c=>typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c);
+const num=(v,d,a,b)=>typeof v==='number'&&isFinite(v)?clamp(v,a,b):d;
+function parseProject(doc){
+  if(!doc||doc.app!=='unfug'||!Array.isArray(doc.layers)||!doc.layers.length)throw new Error('Das ist keine Unfug-Projektdatei');
+  return {
+    bg:isHex(doc.bg)?doc.bg:bg,
+    view:doc.view&&doc.view.z>0?{x:num(doc.view.x,0,-1e300,1e300),y:num(doc.view.y,0,-1e300,1e300),z:num(doc.view.z,1,ZMIN,ZMAX),r:num(doc.view.r,0,-10,10)}:null,
+    active:doc.active|0,
+    layers:doc.layers.slice(0,60).map(l=>{
+      const L=newLayer(typeof l.name==='string'?l.name.slice(0,40):undefined);
+      L.vis=l.vis!==false;L.op=num(l.op,1,0,1);L.bl=BLN[l.bl]?l.bl:'source-over';
+      L.strokes=(Array.isArray(l.strokes)?l.strokes:[]).filter(s=>s&&typeof s.p==='string').map(s=>finalize({
+        m:s.m==='e'?'e':'d',c:isHex(s.c)?s.c:'#000000',a:num(s.a,1,0,1),s:num(s.s,0,0,1),
+        k:['solid','grain','bristle','water'].includes(s.k)?s.k:'solid',t:['paper','coarse','dry','dots','water'].includes(s.t)?s.t:null,
+        u:num(s.u,1,1e-300,1e300),i:s.i|0,p:b64dec(s.p)})).filter(s=>s.p.length>=3);
+      return L;
+    })
+  };
+}
+async function openProjectFile(file){
+  try{
+    const text=await gunzipText(new Uint8Array(await file.arrayBuffer()));
+    let doc;try{doc=JSON.parse(text)}catch(_){throw new Error('Die Datei ist beschädigt oder kein Unfug-Projekt')}
+    const P2=parseProject(doc);
+    const before=layers.slice(),aB=active;
+    layers=P2.layers;active=clamp(P2.active,0,layers.length-1);
+    pushUndo({t:'struct',before,after:layers.slice(),aB,aA:active});
+    bg=P2.bg;applyBg();savePrefs();
+    if(P2.view)Object.assign(view,P2.view);
+    gView=null;updateViewUI();afterHistory();
+    toast('„'+file.name.replace(/\.unfug$/i,'')+'“ geöffnet – rückgängig möglich');
+  }catch(e){toast(e.message||'Öffnen fehlgeschlagen')}
+}
+$('#fileIn').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)openProjectFile(f)});
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')$('#closeModal').click()});
 
 /* ================= hint ================= */
