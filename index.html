@@ -119,6 +119,25 @@ button,select,input{font-family:inherit;font-size:inherit;touch-action:manipulat
 .hexl{display:flex;align-items:center;gap:2px;flex:1;min-height:38px;padding:0 10px;border-radius:11px;background:var(--hover);color:var(--ink-2);font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
 .hexl input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit;text-transform:lowercase;-webkit-user-select:text;user-select:text;outline:none}
 .hsb{margin:-2px 2px 0;font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:3px;border-radius:12px;background:var(--hover)}
+.tabs button{min-height:34px;border:0;border-radius:9px;background:transparent;color:var(--ink-2);font-weight:600;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--chrome-solid);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.pane{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips button{min-height:32px;padding:0 10px;border:0;border-radius:999px;background:var(--hover);color:var(--ink);font-size:12.5px;font-weight:600;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.chips.small button{min-height:28px;font-size:11.5px;padding:0 9px}
+.wheelrow{display:flex;gap:10px;align-items:flex-start}
+#wheel{width:132px;height:132px;flex:none}
+.wheelside{display:grid;gap:8px;min-width:0}
+.hrow{display:flex;gap:6px}
+.hrow .sw{flex:1;aspect-ratio:auto;height:44px;border-radius:10px;width:auto}
+.hrow .sw.base{box-shadow:inset 0 0 0 1px rgba(0,0,0,.16),inset 0 -5px 0 rgba(255,255,255,.75),inset 0 -6px 0 rgba(0,0,0,.25)}
+.hrow.ramp .sw{height:36px}
+.mini.wide{width:100%;justify-content:center;min-height:42px}
+#stage.gray{filter:grayscale(1)}
+#grayChip{position:fixed;z-index:12;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:9px 16px;border:0;border-radius:999px;background:var(--ink);color:var(--chrome-solid);font-weight:600;font-size:13px;cursor:pointer;box-shadow:var(--shadow)}
+#grayChip svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7}
 .vlbl{font-size:9.5px;line-height:1;color:var(--ink-2);text-align:center;padding:0 0 6px;white-space:nowrap}
 #vsStab .vs-track{width:10px;border-radius:5px;background:var(--line)}
 #vsStab .vs-fill{position:absolute;left:0;right:0;bottom:0;height:calc(var(--v) * 100%);background:var(--accent);opacity:.75}
@@ -267,6 +286,11 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
     <button id="cOld" title="Zurück zur vorherigen Farbe"><span class="ct">Vorher</span><span class="cl" id="cOldL"></span></button>
     <div id="cNew"><span class="ct">Neu</span><span class="cl" id="cNewL"></span></div>
   </div>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tabPick" aria-selected="true">Mischen</button>
+    <button role="tab" id="tabHarm" aria-selected="false">Harmonie</button>
+  </div>
+  <div class="pane" id="paneP">
   <div class="sv" id="sv" role="slider" tabindex="0" aria-label="Sättigung und Helligkeit"><canvas id="svC"></canvas><div class="svk" id="svK"></div></div>
   <div class="hue" id="hue" role="slider" tabindex="0" aria-label="Farbton"><div class="huek" id="hueK"></div></div>
   <div class="crow">
@@ -280,7 +304,34 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
   <div class="swatches" id="swatches"></div>
   <h3>Zuletzt benutzt</h3>
   <div class="swatches" id="recent"></div>
+  </div>
+  <div class="pane" id="paneH" hidden>
+    <div class="chips" id="schemes" role="radiogroup" aria-label="Farbharmonie">
+      <button data-s="comp">Komplementär</button><button data-s="split">Split</button><button data-s="analog">Analog</button><button data-s="triad">Triade</button><button data-s="square">Quadrat</button>
+    </div>
+    <div class="wheelrow">
+      <canvas id="wheel" width="132" height="132" aria-label="Farbkreis mit Harmonie"></canvas>
+      <div class="wheelside">
+        <div class="chips small" id="wheelMode" role="radiogroup" aria-label="Farbkreis">
+          <button data-m="ryb" title="Rot-Gelb-Blau, wie beim Farbenmischen">Malerkreis</button><button data-m="rgb" title="Rot-Grün-Blau, wie der Bildschirm">RGB</button>
+        </div>
+        <p class="note" id="schemeTip"></p>
+      </div>
+    </div>
+    <div class="hrow" id="harmRow"></div>
+    <h3>Licht &amp; Schatten</h3>
+    <div class="hrow ramp" id="rampRow"></div>
+    <div class="chips small" id="lightMode" role="radiogroup" aria-label="Lichtfarbe">
+      <button data-l="warm">Warmes Licht</button><button data-l="cool">Kühles Licht</button>
+    </div>
+    <p class="note" id="rampTip"></p>
+    <h3>Gedeckt</h3>
+    <div class="hrow ramp" id="mutedRow"></div>
+    <p class="note">Gleiche Helligkeit, weniger Sättigung. Ideal für Hintergründe und große Flächen, damit kräftige Akzente leuchten.</p>
+    <button class="mini wide" id="grayBtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17" /><path d="M12 3.5a8.5 8.5 0 010 17z" fill="currentColor"/></svg>Werte prüfen (Graustufen) <kbd>G</kbd></button>
+  </div>
 </div>
+<button id="grayChip" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 010 17z" fill="currentColor"/></svg>Graustufen-Ansicht · beenden</button>
 
 <div class="pop tr" id="popLayers" hidden>
   <div class="lh"><h3>Ebenen</h3><button class="mini" id="lAdd" title="Neue Ebene"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Neu</button></div>
@@ -341,7 +392,7 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
     <li><b>Pinsel nochmal antippen</b> → alle Pinsel: Tusche, Manga, Bleistift, Kohle, Öl, Aquarell …, dazu <b>Glättung</b> für ruhige Linien</li>
     <li><b>Ebenen</b> oben rechts, mit Deckkraft und Mischmodus</li>
     <li>⋯ → <b>Bild exportieren</b> als PNG, <b>Projekt sichern</b> zum späteren Weitermalen</li>
-    <li>Tastatur: <kbd>B</kbd> Pinsel, <kbd>E</kbd> Radierer, <kbd>[</kbd> <kbd>]</kbd> Größe, <kbd>I</kbd> Pipette, <kbd>R</kbd> Drehung weg, <kbd>Q</kbd>/<kbd>W</kbd> drehen, Leertaste + Ziehen verschiebt</li>
+    <li>Tastatur: <kbd>B</kbd> Pinsel, <kbd>E</kbd> Radierer, <kbd>[</kbd> <kbd>]</kbd> Größe, <kbd>I</kbd> Pipette, <kbd>G</kbd> Graustufen, <kbd>R</kbd> Drehung weg, <kbd>Q</kbd>/<kbd>W</kbd> drehen, Leertaste + Ziehen verschiebt</li>
   </ul>
   <p class="egg">Die Spirale ist ein Beispiel. Zoom mal ganz tief in ihr Zentrum. Entfernen kannst du sie über ⋯ → Alle Ebenen leeren.</p>
   <div class="btnrow"><button class="btn" id="hintOk">Los geht’s</button></div>
@@ -891,6 +942,7 @@ addEventListener('keydown',e=>{
   if(k==='e'){setTool('eraser');return}
   if(k==='l'){togglePop('#popLayers');return}
   if(k==='i'){startPipette();return}
+  if(k==='g'){setGray(!$('#stage').classList.contains('gray'));return}
   if(k==='['||k===']'){const t=P();t.size=clamp(t.size*(k===']'?1.2:1/1.2),1,300);syncSliders();savePrefs();return}
   if(k==='q')rotateTo(view.r-Math.PI/12);
   if(k==='w')rotateTo(view.r+Math.PI/12);
@@ -1003,7 +1055,7 @@ function showPreview(el,kind){
 
 /* ---- colour picker: HSB field + hue strip, before/after comparison, skin tones, eyedropper ---- */
 const SKIN=['#fde3d2','#f8d0b8','#f1c09f','#e8ad89','#d99a73','#c68660','#ad6f4c','#8f573a','#71422c','#56311f','#e89a8f','#b8786a'];
-let hsv={h:0,s:0,v:.1},oldColor='#16151a',svHue=-1,picking=false;
+let hsv={h:0,s:0,v:.1},oldColor='#16151a',svHue=-1,picking=false,harmBase='#16151a',scheme='comp',wheelMode='ryb',lightMode='warm',colorTab='pick';
 function rgb2hex(r,g,b){return '#'+[r,g,b].map(v=>clamp(Math.round(v),0,255).toString(16).padStart(2,'0')).join('')}
 function hsv2hex(h,s,v){
   const f=n=>{const k=(n+h/60)%6;return v-v*s*Math.max(0,Math.min(k,4-k,1))};
@@ -1021,13 +1073,15 @@ function lstar(hex){
   const [r,g,b]=hex2rgb(hex),Y=.2126*lin(r)+.7152*lin(g)+.0722*lin(b);
   return Y>.008856?116*Math.cbrt(Y)-16:903.3*Y;
 }
-function setColor(c,fromPicker){
+// mode: 'picker' = from the HSB field (keep hsv as is), 'harm' = from a harmony swatch (keep the harmony base)
+function setColor(c,mode){
   color=c.toLowerCase();$('#colorDot').style.setProperty('--c',color);side.style.setProperty('--c',color);
-  if(!fromPicker)hsv=hex2hsv(color,hsv.h);
+  if(mode!=='picker')hsv=hex2hsv(color,hsv.h);
+  if(mode!=='harm')harmBase=color;
   $$('#swatches .sw,#recent .sw,#skin .sw').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===color)));
   updatePicker();
 }
-function pickColor(c,fromPicker){setColor(c,fromPicker);if(tool==='eraser')setTool('brush');savePrefs()}
+function pickColor(c,mode){setColor(c,mode);if(tool==='eraser')setTool('brush');savePrefs()}
 function paintCmp(el,c,lbl){const L=lstar(c);el.style.setProperty('--c',c);el.style.setProperty('--tc',L>58?'#16151a':'#ffffff');lbl.textContent='Helligkeit '+Math.round(L)}
 function drawSV(){
   const c=$('#svC'),pd=Math.min(window.devicePixelRatio||1,2),w=c.clientWidth||276,h=c.clientHeight||172;
@@ -1045,8 +1099,87 @@ function updatePicker(){
   const hk=$('#hueK');hk.style.left=(hsv.h/360*100)+'%';hk.style.setProperty('--c',hsv2hex(hsv.h,1,1));
   paintCmp($('#cOld'),oldColor,$('#cOldL'));paintCmp($('#cNew'),color,$('#cNewL'));
   if(document.activeElement!==$('#hexIn'))$('#hexIn').value=color.slice(1);
-  $('#hsbTxt').textContent=`Farbton ${Math.round(hsv.h)}° · Sättigung ${Math.round(hsv.s*100)} % · Helligkeit ${Math.round(hsv.v*100)} %`;
+  const temp=hsv.s<.12?'neutral':(hsv.h<75||hsv.h>=320)?'warm':(hsv.h>=160&&hsv.h<290)?'kühl':'zwischen warm und kühl';
+  $('#hsbTxt').textContent=`Farbton ${Math.round(hsv.h)}° · Sättigung ${Math.round(hsv.s*100)} % · Helligkeit ${Math.round(hsv.v*100)} % · ${temp}`;
+  if(colorTab==='harm')renderHarmony();
 }
+/* ---- harmony helper ---- */
+// Painter's (RYB) wheel ↔ screen (RGB) hue. Pairs of [ryb°, rgb°].
+const RYBMAP=[[0,0],[60,30],[120,60],[180,120],[240,240],[300,280],[360,360]];
+function mapHue(h,from,to){h=((h%360)+360)%360;for(let i=1;i<RYBMAP.length;i++){const a=RYBMAP[i-1],b=RYBMAP[i];if(h<=b[from]){const t=(h-a[from])/(b[from]-a[from]||1);return a[to]+t*(b[to]-a[to])}}return h}
+const rgb2wheel=h=>wheelMode==='ryb'?mapHue(h,1,0):h, wheel2rgb=h=>wheelMode==='ryb'?mapHue(h,0,1):((h%360)+360)%360;
+const SCHEMES={
+  comp:{o:[0,180],tip:'Stärkster Kontrast. Super für Akzente (z. B. Augen, Licht). Großflächig nebeneinander flimmert es – eine Farbe dominieren lassen.'},
+  split:{o:[0,150,210],tip:'Kontrastreich, aber weicher als komplementär. Sicherer Start für Charaktere und Kleidung.'},
+  analog:{o:[-30,0,30],tip:'Nachbarn im Kreis: ruhig und stimmig, gut für Stimmungen. Für Spannung einen kleinen Kontrast-Akzent setzen.'},
+  triad:{o:[0,120,240],tip:'Bunt und ausgewogen. Faustregel 60-30-10: eine Hauptfarbe, eine Nebenfarbe, ein Akzent.'},
+  square:{o:[0,90,180,270],tip:'Viel Vielfalt – leicht zu unruhig. Eine Farbe klar führen lassen, die anderen gedeckt einsetzen.'}
+};
+function harmonyColors(){
+  const b=hex2hsv(harmBase,hsv.h),w=rgb2wheel(b.h);
+  return SCHEMES[scheme].o.map(o=>({o,c:o===0?harmBase:hsv2hex(wheel2rgb(w+o),b.s,b.v),wa:w+o}));
+}
+function towardHue(h,target,amt){const d=angDiff(target*Math.PI/180,h*Math.PI/180)*180/Math.PI;const m=Math.sign(d)*Math.min(Math.abs(d),amt);return (h+m+360)%360}
+function rampColors(){
+  const b=hex2hsv(harmBase,hsv.h),cool=lightMode==='cool';
+  const lightT=cool?205:55,shadeT=cool?25:250,out=[];
+  for(const k of [-2,-1,0,1,2]){
+    if(k===0){out.push(harmBase);continue}
+    const a=Math.abs(k);let h=b.h,s=b.s,v=b.v;
+    if(b.s>.04){h=towardHue(b.h,k<0?shadeT:lightT,k<0?11*a:8*a)}
+    if(k<0){v=v*(1-.2*a);s=Math.min(1,s+.07*a)}else{v=v+(1-v)*.4*a;s=s*(1-.2*a)}
+    out.push(hsv2hex(h,s,v));
+  }
+  return out;
+}
+function mutedColors(){
+  const [r,g,b]=hex2rgb(harmBase),L=lstar(harmBase);
+  const Y=L>8?Math.pow((L+16)/116,3):L/903.3,gs=Y<=.0031308?Y*12.92:1.055*Math.pow(Y,1/2.4)-.055,G=gs*255;
+  return [0,.2,.4,.6,.8].map(t=>rgb2hex(r+(G-r)*t,g+(G-g)*t,b+(G-b)*t));
+}
+function hsw(c,cls,label){const b=swatchBtn(c);b.classList.add('hs');if(cls)b.classList.add(cls);b.title=label||c;b.setAttribute('aria-label',(label||'Farbe')+' '+c);return b}
+function renderHarmony(){
+  $$('#schemes button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.s===scheme)));
+  $$('#wheelMode button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===wheelMode)));
+  $$('#lightMode button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.l===lightMode)));
+  $('#schemeTip').textContent=SCHEMES[scheme].tip;
+  $('#rampTip').textContent=lightMode==='warm'?'Warmes Licht (Sonne, Lampe): Lichter heller und Richtung Gelb, Schatten dunkler, satter und Richtung Violett/Blau verschoben.':'Kühles Licht (Himmel, Mond): Lichter Richtung Blau, Schatten wärmer Richtung Rot-Orange verschoben.';
+  const hc=harmonyColors(),hr=$('#harmRow');hr.textContent='';
+  hc.forEach(x=>hr.append(hsw(x.c,x.o===0?'base':'',x.o===0?'Basis':'Harmonie')));
+  const rr=$('#rampRow');rr.textContent='';
+  const RL=['Tiefer Schatten','Schatten','Basis','Licht','Glanzlicht'];
+  rampColors().forEach((c,i)=>rr.append(hsw(c,i===2?'base':'',RL[i])));
+  const mr=$('#mutedRow');mr.textContent='';
+  mutedColors().forEach((c,i)=>mr.append(hsw(c,i===0?'base':'',i?'Gedeckt '+i*20+' %':'Basis')));
+  $$('#paneH .sw').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.c===color)));
+  drawWheel(hc);
+}
+function drawWheel(hc){
+  const c=$('#wheel'),pd=Math.min(window.devicePixelRatio||1,2),S=132;
+  if(c.width!==S*pd){c.width=c.height=S*pd}
+  const x=c.getContext('2d');x.setTransform(pd,0,0,pd,0,0);x.clearRect(0,0,S,S);
+  const cx=S/2,cy=S/2,R1=63,R0=45,pt=(a,r)=>[cx+Math.sin(a*Math.PI/180)*r,cy-Math.cos(a*Math.PI/180)*r];
+  for(let a=0;a<360;a+=2){x.beginPath();x.moveTo(...pt(a-1.2,R0));x.arc(cx,cy,R1,(a-91.2)*Math.PI/180,(a-88.8+2)*Math.PI/180);x.arc(cx,cy,R0,(a-88.8+2)*Math.PI/180,(a-91.2)*Math.PI/180,true);x.closePath();x.fillStyle=hsv2hex(wheel2rgb(a),.85,.95);x.fill()}
+  x.beginPath();x.arc(cx,cy,R0-6,0,TAU);x.fillStyle=harmBase;x.fill();x.lineWidth=1;x.strokeStyle='rgba(0,0,0,.15)';x.stroke();
+  const P2=hc.map(h=>pt(h.wa,(R0+R1)/2));
+  if(P2.length>2){x.beginPath();P2.forEach((p,i)=>i?x.lineTo(...p):x.moveTo(...p));x.closePath();x.strokeStyle='rgba(255,255,255,.95)';x.lineWidth=2.5;x.stroke();x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=1;x.stroke()}
+  else if(P2.length===2){x.beginPath();x.moveTo(...P2[0]);x.lineTo(...P2[1]);x.strokeStyle='rgba(255,255,255,.95)';x.lineWidth=2.5;x.stroke()}
+  hc.forEach((h,i)=>{const [px,py]=P2[i],r=h.o===0?9:7;x.beginPath();x.arc(px,py,r,0,TAU);x.fillStyle=h.c;x.fill();x.lineWidth=2.5;x.strokeStyle='#fff';x.stroke();x.lineWidth=1;x.strokeStyle='rgba(0,0,0,.4)';x.stroke()});
+}
+function setColorTab(t){
+  colorTab=t;$('#tabPick').setAttribute('aria-selected',String(t==='pick'));$('#tabHarm').setAttribute('aria-selected',String(t==='harm'));
+  $('#paneP').hidden=t!=='pick';$('#paneH').hidden=t!=='harm';
+  if(t==='harm')renderHarmony();else{svHue=-1;updatePicker()}
+  savePrefs();
+}
+$('#tabPick').addEventListener('click',()=>setColorTab('pick'));
+$('#tabHarm').addEventListener('click',()=>setColorTab('harm'));
+$('#schemes').addEventListener('click',e=>{const b=e.target.closest('button');if(b){scheme=b.dataset.s;renderHarmony();savePrefs()}});
+$('#wheelMode').addEventListener('click',e=>{const b=e.target.closest('button');if(b){wheelMode=b.dataset.m;renderHarmony();savePrefs()}});
+$('#lightMode').addEventListener('click',e=>{const b=e.target.closest('button');if(b){lightMode=b.dataset.l;renderHarmony();savePrefs()}});
+function setGray(on){$('#stage').classList.toggle('gray',on);$('#grayChip').hidden=!on;$('#grayBtn').setAttribute('aria-pressed',String(on));if(on)toast('Graustufen: Stimmen Hell und Dunkel?')}
+$('#grayBtn').addEventListener('click',()=>{closePops();setGray(!$('#stage').classList.contains('gray'))});
+$('#grayChip').addEventListener('click',()=>setGray(false));
 function dragArea(el,onPos,onKey){
   const from=e=>{const r=el.getBoundingClientRect();onPos(clamp((e.clientX-r.left)/r.width,0,1),clamp((e.clientY-r.top)/r.height,0,1))};
   el.addEventListener('pointerdown',e=>{e.preventDefault();try{el.setPointerCapture(e.pointerId)}catch(_){}el.dataset.drag='1';from(e)});
@@ -1055,10 +1188,10 @@ function dragArea(el,onPos,onKey){
   el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
   el.addEventListener('keydown',e=>{const m={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(m){e.preventDefault();onKey(m[0]*.02,m[1]*.02)}});
 }
-dragArea($('#sv'),(x,y)=>{hsv.s=x;hsv.v=1-y;pickColor(hsv2hex(hsv.h,hsv.s,hsv.v),true)},
-  (dx,dy)=>{hsv.s=clamp(hsv.s+dx,0,1);hsv.v=clamp(hsv.v-dy,0,1);pickColor(hsv2hex(hsv.h,hsv.s,hsv.v),true)});
-dragArea($('#hue'),x=>{hsv.h=x*359.9;pickColor(hsv2hex(hsv.h,hsv.s,hsv.v),true)},
-  dx=>{hsv.h=clamp(hsv.h+dx*180,0,359.9);pickColor(hsv2hex(hsv.h,hsv.s,hsv.v),true)});
+dragArea($('#sv'),(x,y)=>{hsv.s=x;hsv.v=1-y;pickColor(hsv2hex(hsv.h,hsv.s,hsv.v),'picker')},
+  (dx,dy)=>{hsv.s=clamp(hsv.s+dx,0,1);hsv.v=clamp(hsv.v-dy,0,1);pickColor(hsv2hex(hsv.h,hsv.s,hsv.v),'picker')});
+dragArea($('#hue'),x=>{hsv.h=x*359.9;pickColor(hsv2hex(hsv.h,hsv.s,hsv.v),'picker')},
+  dx=>{hsv.h=clamp(hsv.h+dx*180,0,359.9);pickColor(hsv2hex(hsv.h,hsv.s,hsv.v),'picker')});
 $('#cOld').addEventListener('click',()=>pickColor(oldColor));
 $('#hexIn').addEventListener('keydown',e=>{if(e.key==='Enter')e.target.blur()});
 $('#hexIn').addEventListener('change',e=>{
@@ -1084,7 +1217,7 @@ function renderRecent(){
   recent.forEach(c=>box.append(swatchBtn(c)));
 }
 function addRecent(c){if(recent[0]===c)return;recent=[c,...recent.filter(x=>x!==c)].slice(0,6);renderRecent();savePrefs()}
-$('#popColor').addEventListener('click',e=>{const b=e.target.closest('.sw');if(b)pickColor(b.dataset.c)});
+$('#popColor').addEventListener('click',e=>{const b=e.target.closest('.sw');if(b)pickColor(b.dataset.c,b.classList.contains('hs')?'harm':undefined)});
 $('#colorBtn').addEventListener('click',e=>togglePop('#popColor',e.currentTarget));
 
 /* ================= popovers & menu ================= */
@@ -1093,7 +1226,7 @@ function togglePop(id,anchor){
   const p=$(id),open=p.hidden;closePops(id);p.hidden=!open;if(!open)return;
   if(id==='#popBrush')drawBrushPreviews();
   if(id==='#popLayers')renderLayersUI();
-  if(id==='#popColor'){oldColor=color;svHue=-1;requestAnimationFrame(updatePicker);updatePicker()}
+  if(id==='#popColor'){oldColor=color;svHue=-1;setColorTab(colorTab);requestAnimationFrame(updatePicker)}
   if(p.classList.contains('tr')||!anchor)return;
   const sb=side.getBoundingClientRect(),ar=anchor.getBoundingClientRect(),h=p.offsetHeight;
   p.style.left=(sb.right+10)+'px';p.style.top=clamp(ar.top+ar.height/2-h/2,10,innerHeight-h-10)+'px';
@@ -1261,7 +1394,7 @@ $('#hintOk').addEventListener('click',hideHint);
 function savePrefs(){
   try{
     const br={};for(const B of BRUSHES)br[B.id]={size:B.size,alpha:B.alpha,soft:B.soft,pres:B.pres,smooth:B.smooth};
-    localStorage.setItem('unfug.prefs2',JSON.stringify({br,er:{size:ERASER.size,alpha:ERASER.alpha,soft:ERASER.soft,pres:ERASER.pres,smooth:ERASER.smooth},brush:brushId,tool,color,recent,bg,finger:fingerDraws,rot:rotEnabled,hint:hintSeen}));
+    localStorage.setItem('unfug.prefs2',JSON.stringify({br,er:{size:ERASER.size,alpha:ERASER.alpha,soft:ERASER.soft,pres:ERASER.pres,smooth:ERASER.smooth},brush:brushId,tool,color,recent,bg,finger:fingerDraws,rot:rotEnabled,hint:hintSeen,cs:{scheme,wheelMode,lightMode,colorTab}}));
   }catch(_){}
 }
 function loadPrefs(){
@@ -1278,6 +1411,7 @@ function loadPrefs(){
     if(Array.isArray(j.recent))recent=j.recent.filter(hex).slice(0,6);
     if(hex(j.bg))bg=j.bg;
     fingerDraws=!!j.finger;rotEnabled=j.rot!==false;hintSeen=!!j.hint;
+    if(j.cs){if(SCHEMES_KEYS.includes(j.cs.scheme))scheme=j.cs.scheme;if(j.cs.wheelMode==='rgb')wheelMode='rgb';if(j.cs.lightMode==='cool')lightMode='cool';if(j.cs.colorTab==='harm')colorTab='harm'}
   }catch(_){}
 }
 let dbP=null;
@@ -1322,6 +1456,7 @@ function demo(){
 }
 
 /* ================= boot ================= */
+const SCHEMES_KEYS=Object.keys(SCHEMES);
 loadPrefs();applyBg();buildBrushList();setColor(color);renderRecent();
 {const t=tool;setBrush(brushId);setTool(t)}syncBrushPop();
 $('#fingerTog').checked=fingerDraws;$('#rotTog').checked=rotEnabled;
