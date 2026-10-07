@@ -222,6 +222,7 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
   <div id="brushList"></div>
   <div class="bset">
     <h3 id="bsTitle">G-Feder</h3>
+    <label class="field" for="stabR"><span class="lbl">Glättung <span id="stabV">50 %</span></span><input type="range" id="stabR" min="0" max="100" step="1"></label>
     <label class="field" for="softR"><span class="lbl">Weichheit <span id="softV">0 %</span></span><input type="range" id="softR" min="0" max="100" step="1"></label>
     <label class="tog"><input type="checkbox" id="presR"> Druckstärke vom Pencil nutzen</label>
     <p class="note" id="bsNote"></p>
@@ -230,6 +231,7 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
 
 <div class="pop" id="popEraser" hidden>
   <h3>Radierer</h3>
+  <label class="field" for="eStabR"><span class="lbl">Glättung <span id="eStabV">50 %</span></span><input type="range" id="eStabR" min="0" max="100" step="1"></label>
   <label class="field" for="eSoftR"><span class="lbl">Weichheit <span id="eSoftV">0 %</span></span><input type="range" id="eSoftR" min="0" max="100" step="1"></label>
   <label class="tog"><input type="checkbox" id="ePresR"> Druckstärke vom Pencil nutzen</label>
   <p class="note">Der Radierer wirkt nur auf die aktive Ebene.</p>
@@ -299,7 +301,7 @@ kbd{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink-2);bor
     <li><b>Apple Pencil</b> zeichnet, mit Druck und Neigung</li>
     <li><b>1 Finger</b> verschiebt, <b>2 Finger</b> zoomen und drehen</li>
     <li><b>2-Finger-Tipp</b> = rückgängig, <b>3-Finger-Tipp</b> = wiederholen</li>
-    <li><b>Pinsel nochmal antippen</b> → alle Pinsel: Tusche, Manga, Bleistift, Kohle, Öl, Aquarell …</li>
+    <li><b>Pinsel nochmal antippen</b> → alle Pinsel: Tusche, Manga, Bleistift, Kohle, Öl, Aquarell …, dazu <b>Glättung</b> für ruhige Linien</li>
     <li><b>Ebenen</b> oben rechts, mit Deckkraft und Mischmodus</li>
     <li>⋯ → <b>Bild exportieren</b> als PNG, <b>Projekt sichern</b> zum späteren Weitermalen</li>
     <li>Tastatur: <kbd>B</kbd> Pinsel, <kbd>E</kbd> Radierer, <kbd>[</kbd> <kbd>]</kbd> Größe, <kbd>R</kbd> Drehung weg, <kbd>Q</kbd>/<kbd>W</kbd> drehen, Leertaste + Ziehen verschiebt</li>
@@ -629,18 +631,26 @@ function addPoint(e){
   }
   if(s.prev)s.dist+=Math.hypot(sx-s.prev[0],sy-s.prev[1]);s.prev=[sx,sy];
   if(B.ts>0){const q=Math.min(1,s.dist/B.ts);f*=.1+.9*Math.sin(q*Math.PI/2)}
-  const [wx,wy]=s2w(sx,sy),z=view.z,r=s.size/2*f/z;
-  s.raw={x:wx,y:wy};
-  if(!s.sm){s.sm={x:wx,y:wy,r};pushPt(wx,wy,r);return}
-  const a=1-B.smooth*.8,m=s.sm;
-  m.x+=(wx-m.x)*a;m.y+=(wy-m.y)*a;m.r+=(r-m.r)*(B.nib!=null?.45:.3);
-  const p=s.p,n=p.length;
-  if(Math.hypot(m.x-p[n-3],m.y-p[n-2])>=.7/z)pushPt(m.x,m.y,m.r);
+  const r=s.size/2*f/view.z;
+  // Stabiliser, in screen px: a "lazy string" (brush only moves once the pen is further away
+  // than the string length) followed by exponential smoothing. Both scale with B.smooth.
+  s.raw={x:sx,y:sy};
+  if(!s.sm){s.sm={x:sx,y:sy,r};s.lz={x:sx,y:sy};s.pp=[sx,sy];const [wx,wy]=s2w(sx,sy);pushPt(wx,wy,r);return}
+  const S=B.smooth,L=s.lz,R=lazyLen(S),dx=sx-L.x,dy=sy-L.y,d=Math.hypot(dx,dy);
+  if(d>R){const q=(d-R)/d;L.x+=dx*q;L.y+=dy*q}
+  const a=1-.8*S,m=s.sm;
+  m.x+=(L.x-m.x)*a;m.y+=(L.y-m.y)*a;m.r+=(r-m.r)*(B.nib!=null?.45:.3);
+  if(Math.hypot(m.x-s.pp[0],m.y-s.pp[1])>=.7){s.pp=[m.x,m.y];const [wx,wy]=s2w(m.x,m.y);pushPt(wx,wy,m.r)}
 }
+const lazyLen=S=>S<=.45?0:42*Math.pow((S-.45)/.55,1.5);
 function endStroke(){
   const s=cur;if(!s)return;
   const p=s.p;let n=p.length;
-  if(s.raw&&Math.hypot(s.raw.x-p[n-3],s.raw.y-p[n-2])>.3/view.z){pushPt(s.raw.x,s.raw.y,s.sm.r);n=p.length}
+  if(s.raw&&s.sm){ // pull the line to where the pen actually lifted
+    const m=s.sm,dx=s.raw.x-m.x,dy=s.raw.y-m.y,d=Math.hypot(dx,dy);
+    if(d>.3){const steps=Math.min(200,Math.ceil(d/2));for(let i=1;i<=steps;i++){const t=i/steps,[wx,wy]=s2w(m.x+dx*t,m.y+dy*t);pushPt(wx,wy,m.r)}}
+    n=p.length;
+  }
   cur=null;
   if(s.B.te>0&&n>3){
     const L=s.B.te/view.z;let acc=0;
@@ -902,9 +912,17 @@ $('#brushList').addEventListener('click',e=>{const b=e.target.closest('.brow');i
 function syncBrushPop(){
   const B=BR[brushId];$('#bsTitle').textContent=B.name+' – Einstellungen';
   $('#softR').value=Math.round(B.soft*100);$('#softV').textContent=Math.round(B.soft*100)+' %';$('#presR').checked=B.pres;
-  $('#bsNote').textContent=B.note;
+  $('#bsNote').textContent=B.note;syncStab();
   const e=ERASER;$('#eSoftR').value=Math.round(e.soft*100);$('#eSoftV').textContent=Math.round(e.soft*100)+' %';$('#ePresR').checked=e.pres;
 }
+function stabHint(v){return v<=45?' ':' · Schnur '+Math.round(lazyLen(v/100))+' px'}
+function syncStab(){
+  const b=Math.round(BR[brushId].smooth*100),e=Math.round(ERASER.smooth*100);
+  $('#stabR').value=b;$('#stabV').textContent=b+' %'+stabHint(b);
+  $('#eStabR').value=e;$('#eStabV').textContent=e+' %'+stabHint(e);
+}
+$('#stabR').addEventListener('input',e=>{BR[brushId].smooth=e.target.value/100;syncStab();savePrefs()});
+$('#eStabR').addEventListener('input',e=>{ERASER.smooth=e.target.value/100;syncStab();savePrefs()});
 $('#softR').addEventListener('input',e=>{BR[brushId].soft=e.target.value/100;$('#softV').textContent=e.target.value+' %';savePrefs()});
 $('#softR').addEventListener('change',drawBrushPreviews);
 $('#presR').addEventListener('change',e=>{BR[brushId].pres=e.target.checked;savePrefs();drawBrushPreviews()});
@@ -1131,8 +1149,8 @@ $('#hintOk').addEventListener('click',hideHint);
 /* ================= persistence ================= */
 function savePrefs(){
   try{
-    const br={};for(const B of BRUSHES)br[B.id]={size:B.size,alpha:B.alpha,soft:B.soft,pres:B.pres};
-    localStorage.setItem('unfug.prefs2',JSON.stringify({br,er:{size:ERASER.size,alpha:ERASER.alpha,soft:ERASER.soft,pres:ERASER.pres},brush:brushId,tool,color,recent,bg,finger:fingerDraws,rot:rotEnabled,hint:hintSeen}));
+    const br={};for(const B of BRUSHES)br[B.id]={size:B.size,alpha:B.alpha,soft:B.soft,pres:B.pres,smooth:B.smooth};
+    localStorage.setItem('unfug.prefs2',JSON.stringify({br,er:{size:ERASER.size,alpha:ERASER.alpha,soft:ERASER.soft,pres:ERASER.pres,smooth:ERASER.smooth},brush:brushId,tool,color,recent,bg,finger:fingerDraws,rot:rotEnabled,hint:hintSeen}));
   }catch(_){}
 }
 function loadPrefs(){
@@ -1141,7 +1159,7 @@ function loadPrefs(){
     let j=JSON.parse(localStorage.getItem('unfug.prefs2')||'null');
     if(!j){const o=JSON.parse(localStorage.getItem('unfug.prefs')||'null');if(o)j={color:o.color,recent:o.recent,bg:o.bg,finger:o.finger,hint:o.hint}}
     if(!j)return;
-    const pick=(dst,src)=>{if(!src)return;for(const k of ['size','alpha','soft','pres'])if(typeof src[k]===typeof dst[k])dst[k]=src[k]};
+    const pick=(dst,src)=>{if(!src)return;for(const k of ['size','alpha','soft','pres','smooth'])if(typeof src[k]===typeof dst[k])dst[k]=src[k]};
     if(j.br)for(const id in j.br)if(BR[id])pick(BR[id],j.br[id]);
     pick(ERASER,j.er);
     if(BR[j.brush])brushId=j.brush;if(j.tool==='eraser'||j.tool==='brush')tool=j.tool;
